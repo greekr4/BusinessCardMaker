@@ -11,6 +11,7 @@ from PIL import Image, ImageTk
 import fitz  # PyMuPDF 라이브러리
 import os
 import tkinter.ttk as ttk
+import pandas as pd
 
 class BusinessCardMaker:
     def __init__(self):
@@ -20,7 +21,6 @@ class BusinessCardMaker:
         self.window.attributes('-topmost', True)  # 항상 위
         self.window.update() 
         self.window.attributes('-topmost', False)  # 다시 일반 상태로 변경
-
         # temp 폴더 생성
         self.temp_dir = "./temp"
         if not os.path.exists(self.temp_dir):
@@ -28,16 +28,13 @@ class BusinessCardMaker:
         else:
             # 기존 임시 파일 삭제
             self.clear_temp_folder()
-            
         # 사용 가능한 폰트 목록 가져오기
         self.available_fonts = self.get_available_fonts()
-        
         # 입력 필드 리스트 초기화
         self.input_fields = []
         # 템플릿 페이지
         self.template_page = 0
         self.selected_page = 0
-
         ############## GUI START ##############
         # 템플릿 선택 프레임
         template_frame = Frame(self.window)
@@ -47,13 +44,11 @@ class BusinessCardMaker:
         self.template_path = None  # 템플릿 경로 초기화
         self.template_label = Label(template_frame, text="선택된 템플릿: 없음")
         self.template_label.pack(pady=0)
-        
         # 미리보기 프레임
         preview_frame = LabelFrame(self.window, text="미리보기")
         preview_frame.pack(pady=10, padx=10, fill='both', expand=True)
         self.preview_label = Label(preview_frame, text="템플릿을 선택하면 미리보기가 표시됩니다")
         self.preview_label.pack(pady=5)
-        
         # 미리보기 이미지를 표시할 Label 추가
         self.preview_image_label = Label(preview_frame)
         self.preview_image_label.pack(pady=5)
@@ -66,39 +61,31 @@ class BusinessCardMaker:
         self.label_side.pack(side=LEFT, padx=5)
         self.next_btn = Button(button_frame, text=">", command=self.toggle_preview)
         self.next_btn.pack(side=LEFT, padx=5)
-        
         # 엑셀 양식 관련 프레임
         excel_frame = Frame(self.window)
         excel_frame.pack(pady=5)
         Button(excel_frame, text="엑셀 양식 다운로드", command=self.download_excel_template, width=15).pack(side=LEFT, padx=2)
         Button(excel_frame, text="엑셀 파일 업로드", command=self.upload_excel, width=15).pack(side=LEFT, padx=2)
-
         # 입력 필드 추가/삭제 버튼 프레임
         field_control_frame = Frame(self.window)
         field_control_frame.pack(pady=5)
         Button(field_control_frame, text="입력 필드 추가", command=self.add_input_field,width=15).pack(side=LEFT, padx=2)
         Button(field_control_frame, text="마지막 필드 삭제", command=self.remove_input_field,width=15).pack(side=LEFT, padx=2)
-        
         # 정보 입력 프레임
         front_frame = LabelFrame(self.window, text="정보 입력")
         front_frame.pack(pady=0, padx=10, fill='both', expand=True)
-        
         # 입력 필드를 담을 스크롤 가능한 프레임
         self.scroll_canvas = Canvas(front_frame)
         scrollbar = Scrollbar(front_frame, orient="vertical", command=self.scroll_canvas.yview)
         self.scrollable_frame = Frame(self.scroll_canvas)
-        
         self.scrollable_frame.bind(
             "<Configure>",
             lambda e: self.scroll_canvas.configure(scrollregion=self.scroll_canvas.bbox("all"))
         )
-        
         self.scroll_canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         self.scroll_canvas.configure(yscrollcommand=scrollbar.set)
-        
         self.scroll_canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="left", fill="y")
-
         # 하단 버튼 프레임
         button_frame = Frame(self.window)
         button_frame.pack(pady=5)
@@ -109,11 +96,8 @@ class BusinessCardMaker:
         self.add_input_field()
 
     def download_excel_template(self):
-        # 엑셀 파일 다운로드
+        """엑셀 양식 다운로드"""
         try:
-            import pandas as pd
-            # 엑셀 파일 생성
-            # 현재 입력 필드의 정보를 기반으로 엑셀 템플릿 생성
             data = {
                 'Text': [],
                 'X(mm)': [],
@@ -122,8 +106,6 @@ class BusinessCardMaker:
                 'Size(Pt)': [],
                 'Page': []
             }
-            
-            # 현재 입력된 필드 정보 가져오기
             for field in self.input_fields:
                 data['Text'].append(field['value'].get())
                 data['X(mm)'].append(field['x_coord'].get())
@@ -131,9 +113,7 @@ class BusinessCardMaker:
                 data['Font'].append(field['font_var'].get())
                 data['Size(Pt)'].append(field['font_size'].get())
                 data['Page'].append(field['draw_page'].get())
-                
             df = pd.DataFrame(data)
-            # 파일 저장 대화상자 열기
             save_path = filedialog.asksaveasfilename(
                 defaultextension=".xlsx",
                 filetypes=[("Excel files", "*.xlsx")]
@@ -145,31 +125,45 @@ class BusinessCardMaker:
             messagebox.showerror("오류", f"엑셀 파일 생성 중 오류가 발생했습니다: {str(e)}")
         
     def upload_excel(self):
-        print('test ')
+        """엑셀 양식 업로드"""
+        file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx")])
+        if file_path:
+            df = pd.read_excel(file_path)
+            self.remove_all_input_field()
+            for index, row in df.iterrows():
+                text_value = "" if pd.isna(row['Text']) else row['Text']
+                self.add_input_field(text=text_value, x_coord=row['X(mm)'], y_coord=row['Y(mm)'], font=row['Font'], font_size=row['Size(Pt)'], draw_page=row['Page'])
 
-    def select_template(self):  # 'side' 매개변수 제거
+    def select_template(self): 
+        """템플릿 선택"""
         path = filedialog.askopenfilename(filetypes=[("PDF files", "*.pdf")])
         self.template_path = path
         template_name = self.template_path.split('/')[-1] if self.template_path else "없음"
         self.template_label.config(text=f"선택된 템플릿: {template_name}")
+        self.preview_label.config(text="")
         if self.template_path:
-            # PDF 파일 열기
             doc = fitz.open(self.template_path)
             self.template_page = len(doc)
             self.selected_page = 1
-            self.label_side.config(text=f"페이지: {self.selected_page}/{self.template_page}")
-        
+
         if self.template_path:
+            # ./temp/preview.pdf 파일이 이미 존재하면 삭제
+            preview_path = "./temp/preview.pdf"
+            if os.path.exists(preview_path):
+                try:
+                    os.remove(preview_path)
+                except Exception as e:
+                    messagebox.showerror("오류", f"미리보기 파일 삭제 중 오류가 발생했습니다: {str(e)}")
             self.update_preview()  # 템플릿 선택 시 미리보기 업데이트
 
     def create_namecard(self):
+        """명함 생성 (show_preview() 호출 => ./temp/preview.pdf 파일 생성 => 최종 PDF 저장)"""
         if not self.template_path:
             messagebox.showerror("오류", "템플릿을 선택해주세요!")
             return
             
         try:
             self.show_preview()
-            
             # 최종 PDF 저장
             output_path = filedialog.asksaveasfilename(
                 defaultextension=".pdf",
@@ -195,9 +189,9 @@ class BusinessCardMaker:
         try:
             # PDF 파일 열기
             # 미리보기 PDF 파일이 없으면 원본 템플릿을 복제
+            # 원본 템플릿 파일을 임시 폴더에 복사
+            import shutil
             if not os.path.exists("./temp/preview.pdf") and self.template_path:
-                # 원본 템플릿 파일을 임시 폴더에 복사
-                import shutil
                 try:
                     shutil.copy2(self.template_path, "./temp/preview.pdf")
                 except Exception as e:
@@ -256,6 +250,9 @@ class BusinessCardMaker:
             return
             
         try:
+            # 로딩 중 표시
+            self.preview_label.config(text="생성 중...")
+            self.window.update() 
             # 원본 템플릿 경로 저장
             original_template = self.template_path
             # 템플릿 PDF 열기
@@ -272,7 +269,11 @@ class BusinessCardMaker:
                 
                 if has_fields_for_page:
                     # 각 페이지별 임시 PDF 생성
-                    c = canvas.Canvas(f"./temp/temp_page_{page_idx}.pdf", pagesize=letter)
+                    # 템플릿 PDF에서 페이지 크기 가져오기
+                    template_page = template.pages[page_idx]
+                    template_width = float(template_page.mediabox.width)
+                    template_height = float(template_page.mediabox.height)
+                    c = canvas.Canvas(f"./temp/temp_page_{page_idx}.pdf", pagesize=(template_width, template_height))
                     # 모든 입력 필드 처리
                     for field in self.input_fields:
                         if field['draw_page'].get() == str(page_idx+1):
@@ -280,10 +281,10 @@ class BusinessCardMaker:
                             font_size = float(field['font_size'].get())
                             x_coord = field['x_coord'].get()
                             y_coord = field['y_coord'].get()
-                            value = field['value'].get()
+                            text = field['text'].get()
                             pdfmetrics.registerFont(TTFont(font_name, f'./font/{font_name}.ttf'))
                             c.setFont(font_name, font_size)
-                            c.drawString(float(x_coord)*mm, float(y_coord)*mm, value)
+                            c.drawString(float(x_coord)*mm, float(y_coord)*mm, text)
                     c.save()
                     # 템플릿과 합치기
                     overlay = PyPDF2.PdfReader(f"./temp/temp_page_{page_idx}.pdf")
@@ -299,55 +300,60 @@ class BusinessCardMaker:
                 output.write(f)
             # 미리보기 업데이트
             self.preview_path = "./temp/preview.pdf"  # 임시로 경로 변경
+            self.preview_label.config(text="")  # 로딩 메시지 제거
             self.update_preview()
             # 원본 템플릿 경로 복원
             self.template_path = original_template
-            messagebox.showinfo("성공", "미리보기가 업데이트 되었습니다.")
         except Exception as e:
             messagebox.showerror("오류", f"미리보기 생성 중 오류가 발생했습니다: {str(e)}")
+            self.preview_label.config(text="미리보기 생성 실패")
 
-    def add_input_field(self):
+    def add_input_field(self, text="", x_coord="0", y_coord="0", font="", font_size="8", draw_page="1"):
         """ 입력 필드 추가 """
         field_frame = Frame(self.scrollable_frame)
         field_frame.pack(anchor='w', padx=10, pady=3)
         # 값 입력창
-        value = Entry(field_frame, width=20)
-        value.pack(side=LEFT, padx=(0, 10))
-        # X, Y 좌표 입력
+        text_entry = Entry(field_frame, width=20)
+        text_entry.pack(side=LEFT, padx=(0, 10))
+        text_entry.insert(0, text)
+        # X좌표 입력
         Label(field_frame, text="X", width=2).pack(side=LEFT)
-        x_coord = Entry(field_frame, width=5)
-        x_coord.insert(0, "0")
-        x_coord.pack(side=LEFT, padx=(0, 10))
+        x_coord_entry = Entry(field_frame, width=5)
+        x_coord_entry.pack(side=LEFT, padx=(0, 10))
+        x_coord_entry.insert(0, x_coord)
+        # Y좌표 입력
         Label(field_frame, text="Y", width=2).pack(side=LEFT)
-        y_coord = Entry(field_frame, width=5)
-        y_coord.insert(0, "0")
-        y_coord.pack(side=LEFT, padx=(0, 10))
+        y_coord_entry = Entry(field_frame, width=5)
+        y_coord_entry.pack(side=LEFT, padx=(0, 10))
+        y_coord_entry.insert(0, y_coord)
         # 폰트 선택 콤보박스
-        font_var = StringVar(value=self.available_fonts[0])
+        font_var = StringVar(value=font if font else self.available_fonts[0])
         font_combo = ttk.Combobox(field_frame, textvariable=font_var, values=self.available_fonts, width=15)
         font_combo.pack(side=LEFT, padx=(0, 10))
         # 폰트 크기 입력
         Label(field_frame, text="크기").pack(side=LEFT)
-        font_size = Entry(field_frame, width=3)
-        font_size.insert(0, "8")
-        font_size.pack(side=LEFT, padx=(0, 10))
+        font_size_entry = Entry(field_frame, width=3)
+        font_size_entry.pack(side=LEFT, padx=(0, 10))
+        font_size_entry.insert(0, font_size)
         # 페이지 입력
         Label(field_frame, text="페이지").pack(side=LEFT)
-        draw_page = Entry(field_frame, width=3)
-        draw_page.insert(0, "1")
-        draw_page.pack(side=LEFT)
+        draw_page_entry = Entry(field_frame, width=3)
+        draw_page_entry.pack(side=LEFT)
+        draw_page_entry.insert(0, draw_page)
+        
         # 입력 필드 정보를 리스트에 저장
         field_info = {
             'frame': field_frame,
-            'value': value,
-            'x_coord': x_coord,
-            'y_coord': y_coord,
+            'text': text_entry,
+            'x_coord': x_coord_entry,
+            'y_coord': y_coord_entry,
             'font_var': font_var,
             'font_combo': font_combo,
-            'font_size': font_size,
-            'draw_page': draw_page
+            'font_size': font_size_entry,
+            'draw_page': draw_page_entry
         }
         self.input_fields.append(field_info)
+        
         # 스크롤 영역 업데이트
         self.scrollable_frame.update_idletasks()
         self.scroll_canvas.configure(scrollregion=self.scroll_canvas.bbox("all"))
@@ -361,6 +367,14 @@ class BusinessCardMaker:
             # 스크롤 영역 업데이트
             self.scrollable_frame.update_idletasks()
             self.scroll_canvas.configure(scrollregion=self.scroll_canvas.bbox("all"))
+
+    def remove_all_input_field(self):
+        """ 모든 필드 삭제 """
+        for field in self.input_fields:
+            field['frame'].destroy()
+        self.input_fields = []
+        self.scrollable_frame.update_idletasks()
+        self.scroll_canvas.configure(scrollregion=self.scroll_canvas.bbox("all"))
 
     def clear_temp_folder(self):
         """ ./temp 폴더의 모든 파일을 삭제"""
@@ -388,3 +402,4 @@ class BusinessCardMaker:
 if __name__ == "__main__":
     app = BusinessCardMaker()
     app.window.mainloop()
+
