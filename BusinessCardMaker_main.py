@@ -16,7 +16,7 @@ import pandas as pd
 class BusinessCardMaker:
     def __init__(self):
         self.window = Tk()
-        self.window.title("명함 제작기")
+        self.window.title("BusinessCardEditor")
         self.window.geometry("650x800+100+50") 
         self.window.attributes('-topmost', True)  # 항상 위
         self.window.update() 
@@ -90,7 +90,7 @@ class BusinessCardMaker:
         button_frame = Frame(self.window)
         button_frame.pack(pady=5)
         Button(button_frame, text="미리보기", command=self.show_preview).pack(side=LEFT, padx=5)
-        Button(button_frame, text="명함 생성", command=self.create_namecard).pack(side=LEFT, padx=5)
+        Button(button_frame, text="다운로드", command=self.create_namecard).pack(side=LEFT, padx=5)
         ############## GUI END ##############
         # 기본 입력 필드 추가
         self.add_input_field()
