@@ -1,10 +1,12 @@
 /bak
-*.pdf
+/disk
 /temp
+*.pdf
 *.xlsx
 *.xls
 *.docx
 *.doc
 *.pptx
 *.ppt
-
+*.spec
+/build
