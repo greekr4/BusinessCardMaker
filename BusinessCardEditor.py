@@ -12,6 +12,7 @@ import fitz  # PyMuPDF 라이브러리
 import os
 import tkinter.ttk as ttk
 import pandas as pd
+import sys
 
 class BusinessCardMaker:
     def __init__(self):
@@ -21,8 +22,11 @@ class BusinessCardMaker:
         self.window.attributes('-topmost', True)  # 항상 위
         self.window.update() 
         self.window.attributes('-topmost', False)  # 다시 일반 상태로 변경
-        # temp 폴더 생성
-        self.temp_dir = "./temp"
+        # 실행 파일 위치 기준으로 경로 설정
+        self.base_path = os.path.dirname(os.path.abspath(sys.argv[0]))
+        self.temp_dir = os.path.join(self.base_path, "temp")
+        self.font_dir = os.path.join(self.base_path, "font")
+        
         if not os.path.exists(self.temp_dir):
             os.makedirs(self.temp_dir)
         else:
@@ -65,7 +69,7 @@ class BusinessCardMaker:
         excel_frame = Frame(self.window)
         excel_frame.pack(pady=5)
         Button(excel_frame, text="엑셀 양식 다운로드", command=self.download_excel_template, width=15).pack(side=LEFT, padx=2)
-        Button(excel_frame, text="엑셀 파일 업로드", command=self.upload_excel, width=15).pack(side=LEFT, padx=2)
+        Button(excel_frame, text="엑셀 양식 불러오기", command=self.upload_excel, width=15).pack(side=LEFT, padx=2)
         # 입력 필드 추가/삭제 버튼 프레임
         field_control_frame = Frame(self.window)
         field_control_frame.pack(pady=5)
@@ -387,11 +391,10 @@ class BusinessCardMaker:
                 print(f"임시 파일 삭제 중 오류 발생: {e}")
 
     def get_available_fonts(self):
-        """./font 폴더에 있는 모든 폰트 불러오기"""
+        """font 폴더에 있는 모든 폰트 불러오기"""
         fonts = []
-        font_dir = './font'
-        if os.path.exists(font_dir):
-            for file in os.listdir(font_dir):
+        if os.path.exists(self.font_dir):
+            for file in os.listdir(self.font_dir):
                 if file.lower().endswith('.ttf'):
                     # 파일 이름에서 확장자 제거
                     font_name = os.path.splitext(file)[0]
