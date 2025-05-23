@@ -10,3 +10,6 @@
 *.ppt
 *.spec
 /build
+*.zip
+*.exe
+*.ttf

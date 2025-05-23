@@ -111,7 +111,7 @@ class BusinessCardMaker:
                 'Page': []
             }
             for field in self.input_fields:
-                data['Text'].append(field['value'].get())
+                data['Text'].append(field['text'].get())
                 data['X(mm)'].append(field['x_coord'].get())
                 data['Y(mm)'].append(field['y_coord'].get())
                 data['Font'].append(field['font_var'].get())
